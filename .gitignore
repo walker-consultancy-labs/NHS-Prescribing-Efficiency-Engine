@@ -1,0 +1,11 @@
+# Ignore downloaded NHSBSA datasets
+data/
+*.csv
+*.zip
+
+# Ignore local IDE settings
+.vscode/
+.history/
+
+# Ignore temporary logs and test outputs
+*.log
