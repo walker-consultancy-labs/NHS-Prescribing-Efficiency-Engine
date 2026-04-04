@@ -3,26 +3,25 @@
 # Objective: Automate validation and ingestion of NHSBSA Open Data
 # -------------------------------------------------------------------------
 
-# TRIGGER: This tells the engine to run automatically on any push to 'main'
+# TRIGGER: Aligned to the left margin
 trigger:
 - main
 
-# POOL: Defines the virtual environment (Agent) provided by Microsoft.
-# We use Ubuntu-Latest to demonstrate cross-platform PowerShell Core capability.
+# POOL: Aligned to the left margin
 pool:
   vmImage: ubuntu-latest
 
-  # STAGES: The high-level phases of the pipeline.
-  stages:
-  - stage: Build_and_Inital_Test
-    displayName: 'Build & Smoke Test'
-    jobs: 
-    - job: Environment_Verification
-      displayName: 'Verify Engine Environment'
-      steps:
-      # Task: Powershell Core execution
-      - pwsh:
-          Write-Host "Initialising NHS Prescribing Efficiency Engine..."
-          Write-Host "Environment: $(Agent.OS)"
-          Write-Host "Time (UTC): $(Get-Date -Format 'HH:mm:ss')"
-        displayName: 'Print Engine Status'
+# STAGES: Aligned to the left margin (not indented under pool)
+stages:
+- stage: Build_and_Initial_Test
+  displayName: 'Build & Smoke Test'
+  jobs: 
+  - job: Environment_Verification
+    displayName: 'Verify Engine Environment'
+    steps:
+    # The '|' symbol is mandatory for multi-line PowerShell scripts
+    - pwsh: |
+        Write-Host "Initialising NHS Prescribing Efficiency Engine..."
+        Write-Host "Environment: $(Agent.OS)"
+        Write-Host "Time (UTC): $(Get-Date -Format 'HH:mm:ss')"
+      displayName: 'Print Engine Status'
