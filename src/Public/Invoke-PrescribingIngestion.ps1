@@ -28,25 +28,22 @@ function Invoke-PrescribingIngestion {
             $RawData = Import-Csv -Path $Path -ErrorAction Stop
             
             $ProcessedData = foreach ($Row in $RawData) {
-                # Logic: Calculate Cost Per Item (Efficiency Metric)
-                # We cast to [decimal] and [int] to ensure math works correctly
-                $ActualCost = [decimal]$Row.'Actual Cost'
-                $Items      = [int]$Row.Items
-                
-                # Prevent division by zero if items is 0
-                $CostPerItem = if ($Items -gt 0) { [math]::Round($ActualCost / $Items, 2) } else { 0 }
+            # Logic: Cast and clean the strings (removing trailing dots if present)
+            $ActualCost = [decimal]($Row.ACTUAL_COST.Trim('.'))
+            $Items      = [int]($Row.ITEMS.Trim('.'))
+            
+            $CostPerItem = if ($Items -gt 0) { [math]::Round($ActualCost / $Items, 2) } else { 0 }
 
-                [PSCustomObject]@{
-                    Period      = $Row.Period
-                    Practice    = $Row.Practice
-                    BNFName     = $Row.'BNF Name'
-                    Items       = $Items
-                    TotalCost   = $ActualCost
-                    CostPerItem = $CostPerItem # The new insight
-                    Status      = "Validated"
-                }
+            [PSCustomObject]@{
+                Period      = $Row.YEAR_MONTH
+                Practice    = $Row.PRACTICE_CODE
+                BNFName     = $Row.BNF_DESCRIPTION
+                Items       = $Items
+                TotalCost   = $ActualCost
+                CostPerItem = $CostPerItem
+                Status      = "Validated"
             }
-
+        }
             return $ProcessedData
         }
         catch {

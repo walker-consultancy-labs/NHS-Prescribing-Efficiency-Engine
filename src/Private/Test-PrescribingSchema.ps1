@@ -14,7 +14,16 @@ function Test-PrescribingSchema {
 
     process {
         # Defined columns based on the agreed DataSchema.md
-        $ExpectedColumns = @('YEAR_MONTH', 'PCO_CODE', 'PRACTICE_CODE', 'BNF_CODE', 'BNF_DESCRIPTION', 'ITEMS', 'NIC', 'ACTUAL_COST')
+        # Update the array to match the SNOMED-mapped headers
+        $ExpectedColumns = @(
+            'YEAR_MONTH', 
+            'PRACTICE_CODE', 
+            'BNF_CODE', 
+            'BNF_DESCRIPTION', 
+            'ITEMS', 
+            'NIC', 
+            'ACTUAL_COST'
+        )
 
         try {
             # Efficiently read only the header row (the first line)
