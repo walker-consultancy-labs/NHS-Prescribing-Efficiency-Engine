@@ -14,7 +14,7 @@ function Test-PrescribingSchema {
 
     process {
         # Defined columns based on the agreed DataSchema.md
-        $ExpectedColumns = @('SHA', 'Practice', 'BNF Code', 'BNF Name', 'Items', 'NIC', 'Actual Cost', 'Period')
+        $ExpectedColumns = @('YEAR_MONTH', 'PCO_CODE', 'PRACTICE_CODE', 'BNF_CODE', 'BNF_DESCRIPTION', 'ITEMS', 'NIC', 'ACTUAL_COST')
 
         try {
             # Efficiently read only the header row (the first line)
