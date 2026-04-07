@@ -1,10 +1,10 @@
 function Invoke-PrescribingIngestion {
     <#
     .SYNOPSIS
-        Ingests and validates NHSBSA prescribing data, calculating key efficiency metrics.
+        Optimised ingestion engine using System.IO.StreamReader for large-scale NHSBSA datasets.
     .DESCRIPTION
-        The primary orchestration function for the Prescribing Engine. Validates the 
-        schema before calculating Cost Per Item for each record.
+        Reads the file line-by-line to maintain a low memory footprint. 
+        Calculates Cost Per Item and returns a PSCustomObject for each record.
     #>
     [CmdletBinding()]
     param(
@@ -13,41 +13,62 @@ function Invoke-PrescribingIngestion {
     )
 
     process {
-        Write-Verbose "Starting ingestion for: $Path"
+        Write-Verbose "Initialising Stream Reader for: $Path"
 
-        # Step 1: Validate Schema using our Private Helper
+        # Step 1: Schema Check (Still using our Gatekeeper)
         $SchemaCheck = Test-PrescribingSchema -Path $Path
         if (-not $SchemaCheck.IsValid) {
             Write-Error "Data Ingestion Aborted: $($SchemaCheck.Message)"
             return
         }
 
-        # Step 2: Import and Process Data
-        # We use -ErrorAction Stop to ensure we catch any data-level issues
+        # Step 2: Stream Processing
+        $Reader = [System.IO.File]::OpenText($Path)
         try {
-            $RawData = Import-Csv -Path $Path -ErrorAction Stop
-            
-            $ProcessedData = foreach ($Row in $RawData) {
-            # Logic: Cast and clean the strings (removing trailing dots if present)
-            $ActualCost = [decimal]($Row.ACTUAL_COST.Trim('.'))
-            $Items      = [int]($Row.ITEMS.Trim('.'))
-            
-            $CostPerItem = if ($Items -gt 0) { [math]::Round($ActualCost / $Items, 2) } else { 0 }
+            # Capture headers and identify column positions (indices)
+            $HeaderLine = $Reader.ReadLine()
+            $Headers = $HeaderLine.Split(',') | ForEach-Object { $_.Trim('"') }
 
-            [PSCustomObject]@{
-                Period      = $Row.YEAR_MONTH
-                Practice    = $Row.PRACTICE_CODE
-                BNFName     = $Row.BNF_DESCRIPTION
-                Items       = $Items
-                TotalCost   = $ActualCost
-                CostPerItem = $CostPerItem
-                Status      = "Validated"
+            $IdxYear     = [array]::IndexOf($Headers, 'YEAR_MONTH')
+            $IdxPractice = [array]::IndexOf($Headers, 'PRACTICE_CODE')
+            $IdxBNFName  = [array]::IndexOf($Headers, 'BNF_DESCRIPTION')
+            $IdxItems    = [array]::IndexOf($Headers, 'ITEMS')
+            $IdxActual   = [array]::IndexOf($Headers, 'ACTUAL_COST')
+
+            # Loop through the file line-by-line
+            while ($null -ne ($Line = $Reader.ReadLine())) {
+                $Fields = $Line.Split(',') | ForEach-Object { $_.Trim('"') }
+
+                # Data Cleaning & Calculation
+                # Handling the trailing dot issue found in raw NHSBSA files
+                $RawItems = $Fields[$IdxItems].Trim('.')
+                $RawCost  = $Fields[$IdxActual].Trim('.')
+
+                $Items      = if ([int]::TryParse($RawItems, [ref]0)) { [int]$RawItems } else { 0 }
+                $ActualCost = if ([decimal]::TryParse($RawCost, [ref]0)) { [decimal]$RawCost } else { 0 }
+                
+                $CostPerItem = if ($Items -gt 0) { [math]::Round($ActualCost / $Items, 2) } else { 0 }
+
+                # Emit the record to the pipeline immediately
+                [PSCustomObject]@{
+                    Period      = $Fields[$IdxYear]
+                    Practice    = $Fields[$IdxPractice]
+                    BNFName     = $Fields[$IdxBNFName]
+                    Items       = $Items
+                    TotalCost   = $ActualCost
+                    CostPerItem = $CostPerItem
+                    Status      = "Validated"
+                }
             }
         }
-            return $ProcessedData
-        }
         catch {
-            Write-Error "Failed to process data rows: $($_.Exception.Message)"
+            Write-Error "Stream Error: $($_.Exception.Message)"
+        }
+        finally {
+            # Critical: Always close the file handle
+            $Reader.Close()
+            $Reader.Dispose()
+            Write-Verbose "Stream Reader closed successfully."
         }
     }
 }

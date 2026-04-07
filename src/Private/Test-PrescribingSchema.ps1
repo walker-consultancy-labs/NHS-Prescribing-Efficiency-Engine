@@ -14,7 +14,7 @@ function Test-PrescribingSchema {
 
     process {
         # Defined columns based on the agreed DataSchema.md
-        # Update the array to match the SNOMED-mapped headers
+        # Standard EPD January 2024 Columns
         $ExpectedColumns = @(
             'YEAR_MONTH', 
             'PRACTICE_CODE', 

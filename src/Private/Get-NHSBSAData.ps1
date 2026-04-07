@@ -1,9 +1,9 @@
 function Get-NHSBSAData {
     <#
     .SYNOPSIS
-        Downloads a specific month of English Prescribing Data from the NHSBSA portal using BITS.
+        Downloads a specific month of English Prescribing Data from the NHSBSA portal.
     .DESCRIPTION
-        Uses Start-BitsTransfer for resilient, high-speed downloads with progress tracking.
+        Uses Invoke-WebRequest with a browser User-Agent to bypass server-side 403 restrictions.
     #>
     [CmdletBinding()]
     param(
@@ -16,27 +16,26 @@ function Get-NHSBSAData {
 
     process {
         try {
-            # Ensure the directory exists before starting the transfer
+            # Ensure the directory exists
             $TargetDir = Split-Path $OutPath
             if (-not (Test-Path $TargetDir)) { 
                 New-Item -ItemType Directory -Path $TargetDir | Out-Null 
             }
 
-            Write-Host "Initialising BITS transfer from NHSBSA Portal..." -ForegroundColor Cyan
+            Write-Host "Initialising download from NHSBSA Portal (Browser Emulation)..." -ForegroundColor Cyan
             
-            # Start-BitsTransfer is preferred for large datasets over Invoke-WebRequest
-            # It provides a native progress bar and handles network interruptions better
-            Start-BitsTransfer -Source $Url -Destination $OutPath -ErrorAction Stop
+            # Use a standard UserAgent to avoid 403 Forbidden errors
+            $UserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             
-            # Calculate file size for logging purposes
+            Invoke-WebRequest -Uri $Url -OutFile $OutPath -UserAgent $UserAgent -ErrorAction Stop
+            
             $FileSizeMB = [math]::Round((Get-Item $OutPath).Length / 1MB, 2)
             Write-Host "Download Complete: $OutPath ($FileSizeMB MB)" -ForegroundColor Green
             
             return $OutPath
         }
         catch {
-            # Error handling for network issues or file access problems
-            Write-Error "Failed to download data via BITS: $($_.Exception.Message)"
+            Write-Error "Failed to download data: $($_.Exception.Message)"
         }
     }
 }
